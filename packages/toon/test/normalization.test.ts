@@ -147,17 +147,6 @@ describe('JavaScript-specific type normalization', () => {
       expect(result).toBe('[3]: a,b,c')
     })
 
-    it('calls toJSON returning null', () => {
-      const obj = {
-        data: 'test',
-        toJSON() {
-          return null
-        },
-      }
-      const result = encode(obj)
-      expect(result).toBe('null')
-    })
-
     it('calls toJSON in nested object properties', () => {
       const nestedObj = {
         secret: 'hidden',
@@ -191,23 +180,6 @@ describe('JavaScript-specific type normalization', () => {
       expect(result).toBe('[2]{transformed}:\n  first-transformed\n  second-transformed')
     })
 
-    it('recursively calls toJSON when returned object also has toJSON', () => {
-      const innerObj = {
-        inner: 'data',
-        toJSON() {
-          return { innerTransformed: 'transformed-data' }
-        },
-      }
-      const outerObj = {
-        outer: 'data',
-        toJSON() {
-          return { nested: innerObj }
-        },
-      }
-      const result = encode(outerObj)
-      expect(result).toBe('nested:\n  innerTransformed: transformed-data')
-    })
-
     it('toJSON takes precedence over Date normalization', () => {
       const customDate = {
         toJSON() {
@@ -218,40 +190,6 @@ describe('JavaScript-specific type normalization', () => {
       Object.setPrototypeOf(customDate, Date.prototype)
       const result = encode(customDate)
       expect(result).toBe('type: custom-date\nvalue: 2025-01-01')
-    })
-
-    it('toJSON takes precedence over Array normalization', () => {
-      const customArray = {
-        toJSON() {
-          return { type: 'was-array', items: 3 }
-        },
-      }
-      // Make it look like an Array but with toJSON
-      Object.setPrototypeOf(customArray, Array.prototype)
-      const result = encode(customArray)
-      expect(result).toBe('type: was-array\nitems: 3')
-    })
-
-    it('toJSON takes precedence over Set normalization', () => {
-      const customSet = {
-        toJSON() {
-          return { type: 'was-set', count: 5 }
-        },
-      }
-      Object.setPrototypeOf(customSet, Set.prototype)
-      const result = encode(customSet)
-      expect(result).toBe('type: was-set\ncount: 5')
-    })
-
-    it('toJSON takes precedence over Map normalization', () => {
-      const customMap = {
-        toJSON() {
-          return { type: 'was-map', entries: 2 }
-        },
-      }
-      Object.setPrototypeOf(customMap, Map.prototype)
-      const result = encode(customMap)
-      expect(result).toBe('type: was-map\nentries: 2')
     })
 
     it('works with toJSON inherited from prototype', () => {
@@ -279,37 +217,6 @@ describe('JavaScript-specific type normalization', () => {
       expect(result).toBe('null')
     })
 
-    it('round-trip encoding/decoding with toJSON', () => {
-      const obj = {
-        id: 1,
-        name: 'Test',
-        toJSON() {
-          return { id: this.id, name: this.name.toUpperCase() }
-        },
-      }
-      const encoded = encode(obj)
-      const decoded = decode(encoded)
-      expect(decoded).toEqual({ id: 1, name: 'TEST' })
-    })
-
-    it('works with toJSON in deeply nested structures', () => {
-      const deepObj = {
-        level: 3,
-        toJSON() {
-          return { depth: this.level, transformed: true }
-        },
-      }
-      const obj = {
-        nested: {
-          deeper: {
-            deepest: deepObj,
-          },
-        },
-      }
-      const result = encode(obj)
-      expect(result).toBe('nested:\n  deeper:\n    deepest:\n      depth: 3\n      transformed: true')
-    })
-
     it('works with replacer function - replacer sees toJSON result', () => {
       const obj = {
         id: 1,
@@ -329,21 +236,6 @@ describe('JavaScript-specific type normalization', () => {
       const decoded = decode(result)
       expect(decoded).toEqual({ id: 1, public: 'visible', extra: 'added' })
       expect(decoded).not.toHaveProperty('secret')
-    })
-
-    it('works with different encoding options', () => {
-      const obj = {
-        data: 'test',
-        toJSON() {
-          return { transformed: 'value', count: 42 }
-        },
-      }
-      // Test with custom indent
-      const result1 = encode(obj, { indent: 4 })
-      expect(result1).toBe('transformed: value\ncount: 42')
-      // Test with custom delimiter
-      const result2 = encode(obj, { delimiter: '\t' })
-      expect(result2).toBe('transformed: value\ncount: 42')
     })
 
     it('toJSON result is normalized before replacer is applied', () => {

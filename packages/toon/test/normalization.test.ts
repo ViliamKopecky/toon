@@ -1,4 +1,5 @@
 /* eslint-disable test/prefer-lowercase-title */
+import type { EncodeReplacer } from '../src/index'
 import { describe, expect, it } from 'vitest'
 import { decode, encode } from '../src/index'
 
@@ -194,7 +195,11 @@ describe('JavaScript-specific type normalization', () => {
 
     it('works with toJSON inherited from prototype', () => {
       class CustomClass {
-        constructor(private value: string) {}
+        value: string
+
+        constructor(value: string) {
+          this.value = value
+        }
 
         toJSON() {
           return { classValue: this.value }
@@ -217,7 +222,7 @@ describe('JavaScript-specific type normalization', () => {
       expect(result).toBe('null')
     })
 
-    it('works with replacer function - replacer sees toJSON result', () => {
+    it('works with replacer function', () => {
       const obj = {
         id: 1,
         secret: 'hidden',
@@ -225,7 +230,7 @@ describe('JavaScript-specific type normalization', () => {
           return { id: this.id, public: 'visible' }
         },
       }
-      const replacer = (key: string, value: unknown) => {
+      const replacer: EncodeReplacer = (key, value) => {
         // Replacer should see the toJSON result, not the original object
         if (typeof value === 'object' && value !== null && 'public' in value) {
           return { ...value, extra: 'added' }
@@ -245,7 +250,7 @@ describe('JavaScript-specific type normalization', () => {
           return { date: this.date }
         },
       }
-      const replacer = (key: string, value: unknown) => {
+      const replacer: EncodeReplacer = (key, value) => {
         // The date should already be normalized to ISO string by the time replacer sees it
         if (key === 'date' && typeof value === 'string') {
           return value.replace('2025', 'YEAR')
